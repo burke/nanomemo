@@ -1,7 +1,6 @@
 package supermemo
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 )
@@ -44,7 +43,6 @@ func (s FactSet) ForReview() FactSet {
 	}
 
 	var indices = rand.Perm(len(subset))
-	fmt.Println(indices)
 	var shuffled FactSet = make(FactSet, len(subset))
 	for i, j := range indices {
 		shuffled[i] = subset[j]
