@@ -33,11 +33,6 @@ func (f *FactMetadata) UpForReview() bool {
 	return time.Now().After(reviewDate)
 }
 
-/* func (f *FactMetadata) String() string { */
-/* 	ts := f.intervalFrom.Format("2006-01-02") */
-/* 	return fmt.Sprintf("%0.6f,%d,%d,%s", f.ef, f.n, f.interval, ts) */
-/* } */
-
 // SM2.2
 const initialEF = 2.5
 

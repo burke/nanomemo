@@ -1,5 +1,15 @@
 package supermemo
 
+import (
+	"fmt"
+	"math/rand"
+	"time"
+)
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 type FactSet []*Fact
 type Fact struct {
 	Question string
@@ -32,5 +42,13 @@ func (s FactSet) ForReview() FactSet {
 			subset = append(subset, fact)
 		}
 	}
-	return subset
+
+	var indices = rand.Perm(len(subset))
+	fmt.Println(indices)
+	var shuffled FactSet = make(FactSet, len(subset))
+	for i, j := range indices {
+		shuffled[i] = subset[j]
+	}
+
+	return shuffled
 }
