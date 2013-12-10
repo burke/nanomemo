@@ -28,6 +28,7 @@ func main() {
 	var fs supermemo.FactSet
 
 	csvr := csv.NewReader(f)
+	csvr.FieldsPerRecord = -1
 	for {
 		record, err := csvr.Read()
 		if err != nil {
@@ -41,6 +42,8 @@ func main() {
 			log.Fatalf("Couldnt' parse csv: %s\n", err.Error())
 		}
 	}
+
+	f.Close()
 
 	for {
 		forReview := fs.ForReview()
@@ -71,6 +74,22 @@ func main() {
 			}
 		}
 	}
+
+	f, err = os.OpenFile(csvpath, os.O_WRONLY, 0660)
+	if err != nil {
+		log.Fatal("Couldn't open CSV file to save results: %s\n", err)
+	}
+	csvw := csv.NewWriter(f)
+
+	for _, f := range fs {
+		q, a, ef, n, interval, intervalFrom := f.Dump()
+		sef := fmt.Sprintf("%0.6f", ef)
+		sn := fmt.Sprintf("%d", n)
+		sinterval := fmt.Sprintf("%d", interval)
+		csvw.Write([]string{q, a, sef, sn, sinterval, intervalFrom})
+	}
+	csvw.Flush()
+	f.Close()
 }
 
 func addFact(fs supermemo.FactSet, record []string) (supermemo.FactSet, error) {
