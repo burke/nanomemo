@@ -4,7 +4,7 @@ documented in more detail at http://www.supermemo.com/english/ol/sm2.htm.
 
 First, there are a few vocabulary items used by this algorithm that we should cover:
 
-EF: Easiness FactMetadataor. Higher means easier. This represents the ease of memorizing a given item.
+EF: Easiness Factor. Higher means easier. This represents the ease of memorizing a given item.
 
 I(n): Interval, in days, between repetitions of an item. n represents the number of times the item has been seen.
 

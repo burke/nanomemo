@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"syscall"
 
 	"github.com/burke/nanomemo/supermemo"
 	"github.com/burke/ttyutils"
@@ -135,5 +136,13 @@ func getKey() byte {
 
 	b := make([]byte, 1)
 	os.Stdin.Read(b)
+	switch b[0] {
+	case 3:
+		syscall.Kill(os.Getpid(), syscall.SIGINT)
+	case 28:
+		syscall.Kill(os.Getpid(), syscall.SIGTERM)
+	case 26:
+		syscall.Kill(os.Getpid(), syscall.SIGTSTP)
+	}
 	return b[0]
 }
