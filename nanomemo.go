@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"strconv"
 	"syscall"
 
@@ -14,17 +15,12 @@ import (
 	"github.com/burke/ttyutils"
 )
 
-func main() {
-
-	if len(os.Args) != 2 {
-		log.Fatal("Usage: nanomemo facts.csv")
-	}
-	csvpath := os.Args[1]
-
+func loadAllFacts(csvpath string) supermemo.FactSet {
 	f, err := os.Open(csvpath)
 	if err != nil {
 		log.Fatalf("Couldn't open %s: %s\n", csvpath, err.Error())
 	}
+	defer f.Close()
 
 	var fs supermemo.FactSet
 
@@ -44,39 +40,11 @@ func main() {
 		}
 	}
 
-	f.Close()
+	return fs
+}
 
-	for {
-		forReview := fs.ForReview()
-		if len(forReview) == 0 {
-			break
-		}
-		for _, f := range forReview {
-			fmt.Printf("\x1b[34mQ:\x1b[0m %s\n", f.Question)
-			getKey()
-			fmt.Printf("\x1b[34mA:\x1b[0m %s\n", f.Answer)
-			for {
-				fmt.Printf("\x1b[34m?:\x1b[0m ")
-				os.Stdout.Sync()
-				k := getKey()
-				q := k - 0x30
-				if q > 0 && q < 4 {
-					fmt.Printf("\x1b[31m%c\x1b[0m\n", k)
-				} else if q > 3 && q < 6 {
-					fmt.Printf("\x1b[32m%c\x1b[0m\n", k)
-				} else {
-					fmt.Printf("%c\n", k)
-				}
-				if q <= 5 && q >= 0 {
-					f.Assess(int(q))
-					fmt.Printf("\n")
-					break
-				}
-			}
-		}
-	}
-
-	f, err = os.OpenFile(csvpath, os.O_WRONLY, 0660)
+func dumpFacts(csvpath string, fs supermemo.FactSet) {
+	f, err := os.OpenFile(csvpath, os.O_WRONLY, 0660)
 	if err != nil {
 		log.Fatal("Couldn't open CSV file to save results: %s\n", err)
 	}
@@ -91,6 +59,57 @@ func main() {
 	}
 	csvw.Flush()
 	f.Close()
+}
+
+func quiz(csvpath string, fs supermemo.FactSet, allFacts supermemo.FactSet) {
+	for {
+		forReview := fs.ForReview()
+		if len(forReview) == 0 {
+			break
+		}
+		for _, f := range forReview {
+			fmt.Printf("\x1b[34mQ:\x1b[0m %s\n", f.Question)
+			exec.Command("open", f.Question).Run()
+			getKey()
+			fmt.Printf("\x1b[34mA:\x1b[0m %s\n", f.Answer)
+			for {
+				fmt.Printf("\x1b[34m?:\x1b[0m ")
+				os.Stdout.Sync()
+				k := getKey()
+				q := k - 0x30
+				if q >= 0 && q < 4 {
+					fmt.Printf("\x1b[31m%c\x1b[0m\n", k)
+				} else if q > 3 && q < 6 {
+					fmt.Printf("\x1b[32m%c\x1b[0m\n", k)
+				} else {
+					fmt.Printf("%c\n", k)
+				}
+				if q <= 5 && q >= 0 {
+					f.Assess(int(q))
+					dumpFacts(csvpath, fs)
+					fmt.Printf("\n")
+					break
+				}
+			}
+		}
+	}
+}
+
+func main() {
+
+	if len(os.Args) != 2 {
+		log.Fatal("Usage: nanomemo facts.csv")
+	}
+	csvpath := os.Args[1]
+
+	fs := loadAllFacts(csvpath)
+
+	for setsize := 10; ; setsize++ {
+		subfs := fs[0:setsize]
+		quiz(csvpath, subfs, fs)
+	}
+	quiz(csvpath, fs, fs)
+
 }
 
 func addFact(fs supermemo.FactSet, record []string) (supermemo.FactSet, error) {
