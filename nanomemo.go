@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +15,21 @@ import (
 	"github.com/burke/nanomemo/supermemo"
 	"github.com/burke/ttyutils"
 )
+
+var (
+	input = flag.String("input", "", "CSV fact list.")
+	openQ = flag.Bool("openq", false, "Call /usr/bin/open on questions when presenting questions?")
+)
+
+func init() {
+	flag.Parse()
+	if *input == "" {
+		fmt.Printf("Usage: %s -input=<some.csv>\n", os.Args[0])
+		flag.PrintDefaults()
+		fmt.Printf("\x1b[33mSee github.com/burke/nanomemo for more details.\x1b[0m\n")
+		os.Exit(1)
+	}
+}
 
 func loadAllFacts(csvpath string) supermemo.FactSet {
 	f, err := os.Open(csvpath)
