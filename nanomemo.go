@@ -68,29 +68,40 @@ func quiz(csvpath string, fs supermemo.FactSet, allFacts supermemo.FactSet) {
 			break
 		}
 		for _, f := range forReview {
-			fmt.Printf("\x1b[34mQ:\x1b[0m %s\n", f.Question)
-			exec.Command("open", f.Question).Run()
+			printQuestion(f.Question)
 			getKey()
-			fmt.Printf("\x1b[34mA:\x1b[0m %s\n", f.Answer)
-			for {
-				fmt.Printf("\x1b[34m?:\x1b[0m ")
-				os.Stdout.Sync()
-				k := getKey()
-				q := k - 0x30
-				if q >= 0 && q < 4 {
-					fmt.Printf("\x1b[31m%c\x1b[0m\n", k)
-				} else if q > 3 && q < 6 {
-					fmt.Printf("\x1b[32m%c\x1b[0m\n", k)
-				} else {
-					fmt.Printf("%c\n", k)
-				}
-				if q <= 5 && q >= 0 {
-					f.Assess(int(q))
-					dumpFacts(csvpath, fs)
-					fmt.Printf("\n")
-					break
-				}
-			}
+			printAnswer(f.Answer)
+			q := readQuality()
+			f.Assess(q)
+			dumpFacts(csvpath, fs)
+			fmt.Printf("\n")
+		}
+	}
+}
+func printQuestion(q string) {
+	fmt.Printf("\x1b[34mQ:\x1b[0m %s\n", q)
+	exec.Command("open", q).Run()
+}
+
+func printAnswer(a string) {
+	fmt.Printf("\x1b[34mA:\x1b[0m %s\n", a)
+}
+
+func readQuality() int {
+	for {
+		fmt.Printf("\x1b[34m?:\x1b[0m ")
+		os.Stdout.Sync()
+		k := getKey()
+		q := k - 0x30
+		if q >= 0 && q < 4 {
+			fmt.Printf("\x1b[31m%c\x1b[0m\n", k)
+		} else if q > 3 && q < 6 {
+			fmt.Printf("\x1b[32m%c\x1b[0m\n", k)
+		} else {
+			fmt.Printf("%c\n", k)
+		}
+		if q <= 5 && q >= 0 {
+			return int(q)
 		}
 	}
 }
@@ -104,7 +115,13 @@ func main() {
 
 	fs := loadAllFacts(csvpath)
 
-	for setsize := 10; ; setsize++ {
+	for setsize := 10; ; setsize += 10 {
+		if setsize > len(fs) {
+			setsize = len(fs) - 1
+			subfs := fs[0:setsize]
+			quiz(csvpath, subfs, fs)
+			break
+		}
 		subfs := fs[0:setsize]
 		quiz(csvpath, subfs, fs)
 	}
@@ -149,12 +166,17 @@ func addFact(fs supermemo.FactSet, record []string) (supermemo.FactSet, error) {
 func getKey() byte {
 	termios, err := ttyutils.MakeTerminalRaw(os.Stdin.Fd())
 	if err != nil {
-		log.Fatal("STDIN is not a terminal or something")
+		log.Fatal("stdin is not a terminal or something ¯\\(°_o)/¯. Don't do that.")
 	}
 	defer ttyutils.RestoreTerminalState(os.Stdin.Fd(), termios)
 
 	b := make([]byte, 1)
 	os.Stdin.Read(b)
+
+	// There's probably some combination of termios flags I can set so that I
+	// still receive C-c,C-z,C-\ as signals rather than characters, while also
+	// handling input byte-by-byte, but it was easier to hobo this way than go
+	// digging through the termios manpages again.
 	switch b[0] {
 	case 3:
 		syscall.Kill(os.Getpid(), syscall.SIGINT)
